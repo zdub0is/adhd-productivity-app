@@ -37,6 +37,29 @@ docker compose up --build
 The API applies its own Postgres migrations on startup and listens on
 `:8090`.
 
+### Deploying to the Raspberry Pi
+
+The stack targets a Raspberry Pi (`bethel@aogami.local`) that already runs a
+Second Life viewer container, within a ~128GB budget on a 256GB SD card.
+Both `postgres:16-alpine` and the Go build's `golang:1.27-alpine` /
+`alpine:3.20` base images are multi-arch and run on arm64 as-is — no
+Pi-specific image changes are needed.
+
+From a machine with SSH access to the Pi (the script runs over SSH; it
+doesn't need to run on the Pi itself):
+
+```sh
+./scripts/deploy-pi.sh [branch]   # defaults to main
+```
+
+This clones the repo on first run (or fast-forwards an existing checkout to
+`origin/<branch>`), then runs `docker compose up -d --build` and polls
+`/healthz`. It refuses to proceed if `~/adhd-productivity-app/.env` is
+missing on the Pi — copy `.env.example` there and fill in
+`POSTGRES_PASSWORD` / `ADMIN_BOOTSTRAP_TOKEN` first. `api` binds `8090` and
+Postgres is only reachable inside the compose network, so neither should
+collide with the existing SL viewer container's ports.
+
 ## Repository layout
 
 ```
@@ -51,6 +74,7 @@ api/                     Go API service
   internal/journal/       /api/v1/journal
 docs/adr/                 Architecture Decision Records
 docker-compose.yml        Go API + Postgres for local/Pi deployment
+scripts/deploy-pi.sh      Deploy the stack to the Raspberry Pi over SSH
 ```
 
 ## Devlog
